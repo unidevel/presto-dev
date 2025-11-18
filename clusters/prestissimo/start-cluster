@@ -34,5 +34,5 @@ echo "Prestissimo worker started with PID: $PRESTISSIMO_PID"
 
 echo "Cluster started successfully"
 echo "Presto coordinator: http://localhost:8080"
-echo "Presto coordinator logs: /opt/presto/log/server.log"
+echo "Presto coordinator logs: /opt/presto/logs/server.log"
 echo "Prestissimo worker logs: /opt/prestissimo/logs/server.log"
