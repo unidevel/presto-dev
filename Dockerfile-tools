@@ -21,8 +21,9 @@ ENV SDKMAN_DIR=/usr/local/sdkman \
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common wget less procps git vim diffutils curl xz-utils openjdk-17-jdk-headless \
-        openssh-server \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common wget less procps git vim \
+        diffutils curl xz-utils openjdk-17-jdk-headless \
+        openssh-server file sudo \
         htop atop glances nmon sysstat dstat \
         linux-tools-common linux-tools-generic \
         valgrind time smem \
@@ -85,4 +86,3 @@ RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked \
     sed -i 's@#AuthorizedKeysFile.*@AuthorizedKeysFile .ssh/authorized_keys@' /etc/ssh/sshd_config && \
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config && \
     ssh-keygen -A
-
