@@ -19,7 +19,7 @@ ARM_BUILD_TARGET ?= apple
 	start stop info shell-centos shell-ubuntu shell prepare-home pull \
 	centos-update-ccache ubuntu-update-ccache down down-centos down-ubuntu
 
-default: start shell
+default: shell
 
 centos-dep:
 	@cd ../presto-native-execution && \
@@ -143,11 +143,19 @@ stop-ubuntu:
 	VERSION=$(VERSION) COMMIT_ID=$(COMMIT_ID) TIMESTAMP=$(TIMESTAMP) DESCRIPTION=$(DESCRIPTION) \
 		${DOCKER_CMD} compose stop ubuntu-dev
 
-shell-centos: start-centos
+shell-centos:
+	@if [ "$$(${DOCKER_CMD} compose ps 2>/dev/null | grep centos-dev | wc -l)" -eq 0 ]; then \
+		echo "centos-dev service is not running. Starting services..."; \
+		$(MAKE) start-centos; \
+	fi
 	VERSION=$(VERSION) COMMIT_ID=$(COMMIT_ID) TIMESTAMP=$(TIMESTAMP) DESCRIPTION=$(DESCRIPTION) \
 		${DOCKER_CMD} compose exec centos-dev bash -l
 
-shell-ubuntu: start-ubuntu
+shell-ubuntu:
+	@if [ "$$(${DOCKER_CMD} compose ps 2>/dev/null | grep ubuntu-dev | wc -l)" -eq 0 ]; then \
+		echo "ubuntu-dev service is not running. Starting services..."; \
+		$(MAKE) start-ubuntu; \
+	fi
 	VERSION=$(VERSION) COMMIT_ID=$(COMMIT_ID) TIMESTAMP=$(TIMESTAMP) DESCRIPTION=$(DESCRIPTION) \
 		${DOCKER_CMD} compose exec ubuntu-dev bash -l
 
