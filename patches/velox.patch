@@ -1,0 +1,86 @@
+diff --git a/velox/connectors/CMakeLists.txt b/velox/connectors/CMakeLists.txt
+index 3fd17dde2..37513d5e0 100644
+--- a/velox/connectors/CMakeLists.txt
++++ b/velox/connectors/CMakeLists.txt
+@@ -13,7 +13,7 @@
+ # limitations under the License.
+ velox_add_library(velox_connector Connector.cpp)
+ 
+-velox_link_libraries(velox_connector velox_common_config velox_vector)
++velox_link_libraries(velox_connector velox_common_config velox_exec velox_vector)
+ 
+ add_subdirectory(fuzzer)
+ 
+diff --git a/velox/connectors/hive/paimon/CMakeLists.txt b/velox/connectors/hive/paimon/CMakeLists.txt
+index a3907a877..fc685d5ac 100644
+--- a/velox/connectors/hive/paimon/CMakeLists.txt
++++ b/velox/connectors/hive/paimon/CMakeLists.txt
+@@ -20,7 +20,7 @@ velox_add_library(
+   PaimonRowKind.cpp
+ )
+ 
+-velox_link_libraries(velox_hive_paimon_split velox_connector velox_hive_connector fmt::fmt)
++velox_link_libraries(velox_hive_paimon_split velox_connector velox_hive_connector velox_dwio_common fmt::fmt)
+ 
+ velox_add_library(velox_hive_paimon_connector PaimonConnector.cpp PaimonDataSource.cpp)
+ 
+diff --git a/velox/connectors/tests/CMakeLists.txt b/velox/connectors/tests/CMakeLists.txt
+index b70f227b4..66c08e051 100644
+--- a/velox/connectors/tests/CMakeLists.txt
++++ b/velox/connectors/tests/CMakeLists.txt
+@@ -17,6 +17,7 @@ add_test(velox_connector_test velox_connector_test)
+ target_link_libraries(
+   velox_connector_test
+   velox_connector
++  velox_exec
+   GTest::gtest
+   GTest::gtest_main
+   glog::glog
+diff --git a/velox/core/tests/CMakeLists.txt b/velox/core/tests/CMakeLists.txt
+index 7b45ae059..4a2100344 100644
+--- a/velox/core/tests/CMakeLists.txt
++++ b/velox/core/tests/CMakeLists.txt
+@@ -46,5 +46,5 @@ add_test(velox_core_plan_consistency_checker_test velox_core_plan_consistency_ch
+ 
+ target_link_libraries(
+   velox_core_plan_consistency_checker_test
+-  PRIVATE velox_core GTest::gtest GTest::gtest_main
++  PRIVATE velox_core velox_exec GTest::gtest GTest::gtest_main
+ )
+diff --git a/velox/dwio/dwrf/test/CMakeLists.txt b/velox/dwio/dwrf/test/CMakeLists.txt
+index 06bac6622..24c652c76 100644
+--- a/velox/dwio/dwrf/test/CMakeLists.txt
++++ b/velox/dwio/dwrf/test/CMakeLists.txt
+@@ -428,6 +428,7 @@ target_link_libraries(
+   velox_dwio_dwrf_reader_test
+   velox_dwrf_test_utils
+   velox_vector_test_lib
++  velox_hive_connector
+   velox_link_libs
+   Folly::folly
+   fmt::fmt
+diff --git a/velox/functions/sparksql/types/tests/CMakeLists.txt b/velox/functions/sparksql/types/tests/CMakeLists.txt
+index 1a04e84eb..8f312b944 100644
+--- a/velox/functions/sparksql/types/tests/CMakeLists.txt
++++ b/velox/functions/sparksql/types/tests/CMakeLists.txt
+@@ -17,6 +17,8 @@ add_executable(velox_spark_types_test TimestampNTZCastTest.cpp TimestampNTZTypeT
+ target_link_libraries(
+   velox_spark_types_test
+   velox_spark_types
++  velox_functions_spark
+   velox_vector_test_lib
++  velox_expression_fuzzer
+   GTest::gtest_main
+ )
+diff --git a/velox/functions/sparksql/window/tests/CMakeLists.txt b/velox/functions/sparksql/window/tests/CMakeLists.txt
+index 84526d933..2c86aba95 100644
+--- a/velox/functions/sparksql/window/tests/CMakeLists.txt
++++ b/velox/functions/sparksql/window/tests/CMakeLists.txt
+@@ -18,6 +18,7 @@ set(
+   velox_exec
+   velox_exec_test_lib
+   velox_functions_spark_window
++  velox_functions_spark_aggregates
+   velox_functions_window_test_lib
+   velox_vector_fuzzer
+   velox_vector_test_lib

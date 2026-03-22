@@ -4,11 +4,13 @@ DOCKER_CMD ?= $(shell if podman info > /dev/null 2>&1; then echo podman; else ec
 DOCKERHUB ?= docker.io
 CACHE_OPTION ?=
 NUM_THREADS ?= 3
+NUM_LINK_JOBS ?= 2
 VERSION ?= $(shell grep -m 1 '^    <version>' ../pom.xml | sed -e 's/.*<version>\([^<]*\)<\/version>.*/\1/' -e 's/-SNAPSHOT//')
 COMMIT_ID ?= $(shell git -C .. rev-parse --short HEAD)
 TIMESTAMP ?= $(shell date '+%Y%m%d%H%M%S')
 ARCH ?= $(shell uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')
-VELOX_SCRIPT_PATCH ?= scripts/velox-script.patch
+VELOX_PATCH ?= patches/velox.patch
+PRESTO_PATCH ?= patches/presto.patch
 ARM_BUILD_TARGET ?= apple
 
 -include .env
@@ -21,30 +23,39 @@ ARM_BUILD_TARGET ?= apple
 
 default: shell
 
+# Helper to apply all patches in ../presto-dev/velox/ to velox submodule
+apply_patches:
+	@echo "Applying patches to presto..."
+	if [ -f "$(PRESTO_PATCH)" ]; then \
+		echo "Applying $(PRESTO_PATCH)"; \
+		(cd ../presto-native-execution && git stash && patch -p2 < "../presto-dev/$(PRESTO_PATCH)"); \
+	fi; \
+	echo "Applying patches to velox submodule..."
+	if [ -f "$(VELOX_PATCH)" ]; then \
+		echo "Applying $(VELOX_PATCH)"; \
+		(cd ../presto-native-execution/velox && git stash && patch -p1 < "../../presto-dev/$(VELOX_PATCH)"); \
+	fi; \
+
 centos-dep:
-	@cd ../presto-native-execution && \
-		make submodules && \
-		if [ -f "../presto-dev/$(VELOX_SCRIPT_PATCH)" ]; then \
-			(cd velox && git stash && patch -p1 < "../../presto-dev/$(VELOX_SCRIPT_PATCH)") \
-		fi && \
+	@(cd ../presto-native-execution && make submodules ) && \
+		make apply_patches && cd ../presto-native-execution && \
 		$(DOCKER_CMD) compose build --build-arg ARM_BUILD_TARGET=$(ARM_BUILD_TARGET) centos-native-dependency
 
 ubuntu-dep:
-	@cd ../presto-native-execution && \
-		make submodules && \
-		if [ -f "../presto-dev/$(VELOX_SCRIPT_PATCH)" ]; then \
-			(cd velox && git stash && patch -p1 < "../../presto-dev/$(VELOX_SCRIPT_PATCH)") \
-		fi && \
+	@(cd ../presto-native-execution && make submodules ) && \
+		make apply_patches && cd ../presto-native-execution && \
 		$(DOCKER_CMD) compose build --build-arg ARM_BUILD_TARGET=$(ARM_BUILD_TARGET) ubuntu-native-dependency
 
 centos-cpp-dev:
 	env VERSION=$(VERSION) COMMIT_ID=$(COMMIT_ID) TIMESTAMP=$(TIMESTAMP) DESCRIPTION=$(DESCRIPTION) \
 		$(DOCKER_CMD) compose build --build-arg CACHE_OPTION=$(CACHE_OPTION) --build-arg NUM_THREADS=$(NUM_THREADS) \
+		--build-arg NUM_LINK_JOBS=$(NUM_LINK_JOBS) \
 		centos-cpp-dev
 
 ubuntu-cpp-dev:
 	env VERSION=$(VERSION) COMMIT_ID=$(COMMIT_ID) TIMESTAMP=$(TIMESTAMP) DESCRIPTION=$(DESCRIPTION) \
 		$(DOCKER_CMD) compose build --build-arg CACHE_OPTION=$(CACHE_OPTION) --build-arg NUM_THREADS=$(NUM_THREADS) \
+		--build-arg NUM_LINK_JOBS=$(NUM_LINK_JOBS) \
 		ubuntu-cpp-dev
 
 centos-java-dev:

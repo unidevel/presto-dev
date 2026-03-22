@@ -16,19 +16,23 @@ FROM ${DEPENDENCY_IMAGE} as prestissimo-dev
 
 ARG OSNAME=centos
 ARG EXTRA_CMAKE_FLAGS=''
-ARG NUM_THREADS=8
+ARG NUM_THREADS=
+ARG NUM_LINK_JOBS=
 ARG ARM_BUILD_TARGET=''
 ARG CACHE_OPTION=''
 
 ENV PROMPT_ALWAYS_RESPOND=n
-ENV BUILD_BASE_DIR=_build
+ENV BUILD_BASE_DIR=build
+ENV BUILD_TYPE=Debug
+ENV BUILD_DIR=
 ENV LANG=C.UTF-8
-ENV EXTRA_CMAKE_FLAGS=${EXTRA_CMAKE_FLAGS}
+ENV EXTRA_CMAKE_FLAGS="-DMAX_LINK_JOBS=${NUM_LINK_JOBS} -DMAX_HIGH_MEM_JOBS=${NUM_LINK_JOBS} ${EXTRA_CMAKE_FLAGS}"
 ENV BUILD_ROOT=/presto
 ENV PRESTISSIMO_HOME=/opt/prestissimo
 
 RUN --mount=type=bind,source=.,target=${BUILD_ROOT},rw \
     --mount=type=cache,target=/root/ccache-${OSNAME} \
+    --mount=type=cache,target=${BUILD_ROOT}/presto-native-execution/${BUILD_BASE_DIR} \
     if [ "${CACHE_OPTION}" = "update" ]; then \
       echo "Updating ccache data"; \
       ccache -sz -v; \
@@ -45,28 +49,24 @@ RUN --mount=type=bind,source=.,target=${BUILD_ROOT},rw \
       mkdir -p ${PRESTISSIMO_HOME}/bin && \
       mkdir -p ${PRESTISSIMO_HOME}/lib; \
     fi && \
+    find ${BUILD_ROOT}/presto-native-execution/${BUILD_BASE_DIR} && \
     cd ${BUILD_ROOT}/presto-native-execution && \
-    make release && df -h && \
-    export OUT_DIR=release && \
-    if [ "${OSNAME}" != "ubuntu" ]; then \
-      make clean && \
-      make debug && df -h && \
-      export OUT_DIR=debug; \
-    fi && \
+      make cmake-and-build BUILD_BASE_DIR=${BUILD_BASE_DIR} BUILD_TYPE=${BUILD_TYPE} BUILD_DIR=${BUILD_DIR} && \
+      df -h && \
     if [ "${CACHE_OPTION}" = "update" ]; then \
-      echo "ccache data updated"; \
-      make clean; \
+    echo "ccache data updated"; \
+    make clean; \
     else \
-      !(LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib:/usr/local/lib64 ldd ${BUILD_ROOT}/presto-native-execution/${BUILD_BASE_DIR}/${OUT_DIR}/presto_cpp/main/presto_server  | grep "not found") && \
-      LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib:/usr/local/lib64 ldd ${BUILD_ROOT}/presto-native-execution/${BUILD_BASE_DIR}/${OUT_DIR}/presto_cpp/main/presto_server | awk 'NF == 4 { system("cp " $3 " ${PRESTISSIMO_HOME}/lib") }' && \
-      cp ${BUILD_ROOT}/presto-native-execution/${BUILD_BASE_DIR}/${OUT_DIR}/presto_cpp/main/presto_server ${PRESTISSIMO_HOME}/bin/presto_server && \
-      chmod 0755 ${PRESTISSIMO_HOME}/bin/presto_server && \
-      echo "${PRESTISSIMO_HOME}/lib" > /etc/ld.so.conf.d/prestissimo.conf && ldconfig && \
-      make clean && \
-      mkdir -p /opt/cache && \
-      rm -rf /opt/cache/.ccache && rm -rf /root/.ccache && \
-      cp -r ${CCACHE_DIR} /opt/cache/.ccache && \
-      ln -sf /opt/cache/.ccache /root/.ccache; \
+    !(LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib:/usr/local/lib64 ldd ${BUILD_ROOT}/presto-native-execution/${BUILD_BASE_DIR}/${BUILD_DIR}/presto_cpp/main/presto_server | grep "not found") && \
+    LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib:/usr/local/lib64 ldd ${BUILD_ROOT}/presto-native-execution/${BUILD_BASE_DIR}/${BUILD_DIR}/presto_cpp/main/presto_server | awk 'NF == 4 { system("cp " $3 " ${PRESTISSIMO_HOME}/lib") }' && \
+    cp ${BUILD_ROOT}/presto-native-execution/${BUILD_BASE_DIR}/${BUILD_DIR}/presto_cpp/main/presto_server ${PRESTISSIMO_HOME}/bin/presto_server && \
+    chmod 0755 ${PRESTISSIMO_HOME}/bin/presto_server && \
+    echo "${PRESTISSIMO_HOME}/lib" > /etc/ld.so.conf.d/prestissimo.conf && ldconfig && \
+    make clean && \
+    mkdir -p /opt/cache && \
+    rm -rf /opt/cache/.ccache && rm -rf /root/.ccache && \
+    cp -r ${CCACHE_DIR} /opt/cache/.ccache && \
+    ln -sf /opt/cache/.ccache /root/.ccache; \
     fi && \
     ccache -s -v
 

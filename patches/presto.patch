@@ -1,0 +1,49 @@
+diff --git a/presto-native-execution/presto_cpp/main/tool/trace/CMakeLists.txt b/presto-native-execution/presto_cpp/main/tool/trace/CMakeLists.txt
+index 867250f..b4eb5b7 100644
+--- a/presto-native-execution/presto_cpp/main/tool/trace/CMakeLists.txt
++++ b/presto-native-execution/presto_cpp/main/tool/trace/CMakeLists.txt
+@@ -20,17 +20,19 @@ target_link_libraries(
+   velox_query_trace_replayer_base
+ )
+ 
+-add_executable(presto_trace_replayer TraceReplayerMain.cpp)
++add_executable(presto_trace_replayer TraceReplayerMain.cpp BroadcastWriteReplayer.cpp)
+ 
+ target_link_libraries(
+   presto_trace_replayer
+   presto_tool_trace_replayers
+   presto_operators
++  presto_types
+   presto_type_converter
+   velox_core
+   velox_exec
+   velox_query_trace_replayer_base
+   ${FOLLY_WITH_DEPENDENCIES}
++  ${WANGLE}
+   ${GFLAGS_LIBRARIES}
+ )
+ 
+diff --git a/presto-native-execution/presto_cpp/main/tool/trace/tests/CMakeLists.txt b/presto-native-execution/presto_cpp/main/tool/trace/tests/CMakeLists.txt
+index 416a6ed..5d2b1a7 100644
+--- a/presto-native-execution/presto_cpp/main/tool/trace/tests/CMakeLists.txt
++++ b/presto-native-execution/presto_cpp/main/tool/trace/tests/CMakeLists.txt
+@@ -15,16 +15,16 @@ add_executable(presto_partition_and_serialize_replayer_test PartitionAndSerializ
+ target_link_libraries(
+   presto_partition_and_serialize_replayer_test
+   presto_tool_trace_replayers
++  presto_operators_plan_builder
+   presto_operators
+-  presto_plan_builder
+   velox_core
+   velox_exec
+   velox_exec_test_lib
+   velox_hive_connector
+   velox_hive_iceberg_splitreader
+   velox_query_trace_replayer_base
+-  gtest
+-  gtest_main
++  GTest::gtest
++  GTest::gtest_main
+   ${FOLLY_WITH_DEPENDENCIES}
+   ${GFLAGS_LIBRARIES}
+ )

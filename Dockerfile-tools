@@ -45,6 +45,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     corepack enable && \
     corepack prepare pnpm@latest --activate && \
     corepack prepare yarn@latest --activate && \
+    npm install -g opencode-ai && \
+    opencode --version && \
     mkdir /var/run/sshd && \
     sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config && \
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
